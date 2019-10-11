@@ -105,27 +105,30 @@ public class UiautomatorTestApiClient {
         return headers;
     }
 
-    public void login(){
+    public int login(){
         RequestBody request = new JSONBuilder().append("username", username).append("password", password).buildRequestBody();
 
         try {
             Call<ResponseBody> call = apiModel.login(request, csrftoken);
             Response<ResponseBody> response = call.execute();
-            Log.i("UiautomatorTestApiClient-login", response.body().string());
+            Log.i("UiautomatorTestApiClient-login", response.code() + " " + response.body().string());
+            return response.code();
         } catch (IOException e) {
             Log.e("UiautomatorTestApiClient-login", e.getMessage());
+            return 0;
         }
     }
-    public void autoFinish(String title, String amount){
+    public int autoFinish(String title, String amount){
         RequestBody request = new JSONBuilder().append("content", amount).append("remarks", title).buildRequestBody();
 
         try {
             Call<ResponseBody> call = apiModel.autoFinish(request, csrftoken);
             Response<ResponseBody> response = call.execute();
-            Log.i("UiautomatorTestApiClient-autoFinish", response.body().string());
+            Log.i("UiautomatorTestApiClient-autoFinish", response.code() + "");// + " " + response.body().string());
+            return response.code();
         } catch (IOException e) {
             Log.e("UiautomatorTestApiClient-autoFinish", e.getMessage());
+            return 0;
         }
     }
-
 }

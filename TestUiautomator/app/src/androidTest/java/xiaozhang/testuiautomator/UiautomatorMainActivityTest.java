@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.os.Bundle;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 import android.support.test.uiautomator.By;
@@ -37,10 +38,13 @@ public class UiautomatorMainActivityTest {
     private UiDevice uiDevice;
     private static final int LAUNCH_TIMEOUT = 5000;//运行的时间
     private static final String XIANYU_APPLICATION_PACKAGE = "com.taobao.idlefish";
+    private static final String TEST_APPLICATION_PACKAGE = "xiaozhang.testuiautomator";
     private static final String TAOBAO_APPLICATION_PACKAGE = "com.taobao.taobao";
-    private static final String account = "小蜜蜂";
-    private static final String password = "20";
-   // @Before代替setUp方法，有多个依次执行   @After 代替tearDown方法   //uiautomatorviewer  自动化界面分析工具
+    private static String account = "";
+    private static String password = "";
+
+    private Map<String, String> orderList = new HashMap<>();
+    // @Before代替setUp方法，有多个依次执行   @After 代替tearDown方法   //uiautomatorviewer  自动化界面分析工具
     @Before
     public void startUiautomatorMainActivityHomeScreen() {
 
@@ -57,6 +61,7 @@ public class UiautomatorMainActivityTest {
         final String launcherPackage = getLauncherPackageName();
         assertThat(launcherPackage, notNullValue());
         uiDevice.wait(Until.hasObject(By.pkg(launcherPackage).depth(0)), LAUNCH_TIMEOUT);
+        orderList.put("start","null");
     }
 
 
@@ -65,36 +70,16 @@ public class UiautomatorMainActivityTest {
     @Test
     public void testAutoXianyuCheck() {
         Log.i("UiautomatorMainActivityTest","testAutoXianyuCheck");
+        Bundle para= InstrumentationRegistry.getArguments();
+        account = para.getString("account");//此时paraString="value"
+        password = para.getString("password");//此时paraString="value"
         login();
-//        startApp(XIANYU_APPLICATION_PACKAGE);
-//        List<UiObject2> temp = getUiObject2ById("id_pager").getChildren();
-//        List<UiObject2> temp1 = getUiObject2ById("id_indicator").getChildren();
-//        getUiObject2ById("indicator_itmes").getChildren().get(4).click();
-//        getUiObject2ByText("我卖出的").click();
-        //刷新咸菜菜单列表
-        uiDevice.swipe(500, 500, 500, 1000, 10);
-        //等待刷新完成
-        try {
-            sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        int x = (int) (uiDevice.getDisplayWidth() *0.625);
+        int y = (int) (uiDevice.getDisplayHeight()*0.5875);
+        while (true){
+            checkNewOrder(x,y);
+//            testSleep(10000);
         }
-        //获取订单列表
-        List<UiObject2> orderListObj = getUiObject2ById("list_view").getChildren();
-        orderListObj.remove(0);
-        Map<String, String> orderList = new HashMap<>();
-        for (UiObject2 orderObj:orderListObj){
-            List<UiObject2> orderObjStatus = orderObj.getChildren().get(0).getChildren().get(0).getChildren().get(0).getChildren().get(1).getChildren();
-            //获取订单内容，只有等待卖家发货的订单放入订单内容
-            String title = orderObjStatus.get(0).getChildren().get(0).getText();
-            String amount = orderObjStatus.get(1).getChildren().get(0).getChildren().get(0).getText();
-            String status = orderObjStatus.get(2).getChildren().get(0).getText();
-            if (status.equals("等待卖家发货")){
-                orderList.put(title, amount);
-                autoFinish(title, amount);
-            }
-        }
-        UiObject2 temp2 = getUiObject2ById("list_view");
     }
     @Test
     public void testChangeText_sameActivity() {
@@ -141,6 +126,54 @@ public class UiautomatorMainActivityTest {
     }
 
     /**
+     * 检测是否有新的订单被交易
+     *
+     * @return
+     */
+    private void checkNewOrder(int x,int y){
+//        if (orderList.size() == 0)
+//            getUiObject2ById("text_title");//获取通知
+        //刷新咸菜菜单列表
+        uiDevice.swipe(500, 500, 500, 1000, 10);
+        //等待刷新完成
+        UiObject2 loading = uiDevice.findObject(By.res(XIANYU_APPLICATION_PACKAGE, "center_loading"));
+        while (loading != null){
+            loading = uiDevice.findObject(By.res(XIANYU_APPLICATION_PACKAGE, "center_loading"));
+            Log.i("loading", "");
+        }
+        testSleep(3000);
+        //获取订单列表
+        List<UiObject2> orderListObj = getUiObject2ById("list_view").getChildren();
+        orderListObj.remove(0);
+        orderList.clear();
+        for (UiObject2 orderObj:orderListObj){
+            try {
+                List<UiObject2> orderObjStatus = orderObj.getChildren().get(0).getChildren().get(0).getChildren().get(0).getChildren().get(1).getChildren();
+                if (orderObjStatus.size() != 3) break;
+                //获取订单内容，只有等待卖家发货的订单放入订单内容
+                String title = orderObjStatus.get(0).getChildren().get(0).getText();
+                String amount = orderObjStatus.get(1).getChildren().get(0).getChildren().get(0).getText();
+                String status = orderObjStatus.get(2).getChildren().get(0).getText();
+                if (status.equals("等待卖家发货")){
+                    orderList.put(title, amount);
+                    int res = autoFinish(title, "入账" + amount.substring(1) + "元");
+                    if (res == 200 || res == 404){//自动确认发货
+                        orderObj.findObject(By.res(XIANYU_APPLICATION_PACKAGE, "trade_statue")).click();
+                        getUiObject2ById("right_text").click();
+                        //todo 点击确定
+                        testSleep(3000);
+                        uiDevice.click(x,y);
+                        testSleep(3000);
+//                    getUiObject2ById("bar_left").click();
+                    }
+                }
+            }catch (IndexOutOfBoundsException e){
+                Log.i("","");
+            }
+        }
+    }
+
+    /**
      * 获取运行的包
      *
      * @return
@@ -175,20 +208,25 @@ public class UiautomatorMainActivityTest {
                         .depth(0)), LAUNCH_TIMEOUT);
     }
     /**
-     * 登陆
+     * 登陆请求
      *
      * @return
      */
-    private void login() {
-        UiautomatorTestApiClient.getInstance().login();
+    private int login() {
+        return UiautomatorTestApiClient.getInstance().login();
     }
     /**
-     * 自动确认
+     * 自动确认请求
      *
-     * @return
+     * @return 200成功 其余失败
      */
-    private void autoFinish(String title, String amount) {
-        UiautomatorTestApiClient.getInstance().autoFinish(title, amount);
+    private int autoFinish(String title, String amount) {
+        int res = UiautomatorTestApiClient.getInstance().autoFinish(title, amount);
+        if (res == 200)
+            return res;
+        if (res == 403 && login() == 200)
+            return UiautomatorTestApiClient.getInstance().autoFinish(title, amount);
+        return res;
     }
     /**
      * 获取对应元素
@@ -201,15 +239,7 @@ public class UiautomatorMainActivityTest {
         while (temp == null){
             Log.i("getUiObject2ById",objId);
             temp = uiDevice.findObject(By.res(XIANYU_APPLICATION_PACKAGE, objId));
-        }
-        return temp;
-    }
-    private UiObject2 getUiObject2ByClass(String className) {
-
-        UiObject2 temp = null;
-        while (temp == null){
-            Log.i("getUiObject2ByClass",className);
-            temp = uiDevice.findObject(By.clazz(className));
+            testSleep(100);
         }
         return temp;
     }
@@ -219,6 +249,7 @@ public class UiautomatorMainActivityTest {
         while (temp == null){
             Log.i("getUiObject2ByText",text);
             temp = uiDevice.findObject(By.text(text));
+            testSleep(1000);
         }
         return temp;
     }
@@ -226,6 +257,14 @@ public class UiautomatorMainActivityTest {
         while (!uiDevice.hasObject(By.text(text)) && !uiDevice.hasObject(By.res(packageName, text))){
             Log.i("untilUiObjectInit",text);
         }
+    }
+    private void testSleep(int time){
+        try {
+            sleep(time);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
     }
 
 }
