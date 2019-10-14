@@ -58,9 +58,9 @@ public class UiautomatorMainActivityTest {
 //        uiDevice.pressHome();
 
         //等待运行
-        final String launcherPackage = getLauncherPackageName();
-        assertThat(launcherPackage, notNullValue());
-        uiDevice.wait(Until.hasObject(By.pkg(launcherPackage).depth(0)), LAUNCH_TIMEOUT);
+//        final String launcherPackage = getLauncherPackageName();
+//        assertThat(launcherPackage, notNullValue());
+//        uiDevice.wait(Until.hasObject(By.pkg(launcherPackage).depth(0)), LAUNCH_TIMEOUT);
         orderList.put("start","null");
     }
 
@@ -71,9 +71,12 @@ public class UiautomatorMainActivityTest {
     public void testAutoXianyuCheck() {
         Log.i("UiautomatorMainActivityTest","testAutoXianyuCheck");
         Bundle para= InstrumentationRegistry.getArguments();
-        account = para.getString("account");//此时paraString="value"
-        password = para.getString("password");//此时paraString="value"
-        login();
+        account = para.getString("account");//"小蜜蜂1";//此时paraString="value"
+        password = para.getString("password");//"Aa123456";//此时paraString="value"
+        if(login(account, password) != 200){
+            uiDevice.pressHome();
+            return;
+        }
         int x = (int) (uiDevice.getDisplayWidth() *0.625);
         int y = (int) (uiDevice.getDisplayHeight()*0.5875);
         while (true){
@@ -155,9 +158,10 @@ public class UiautomatorMainActivityTest {
                 String amount = orderObjStatus.get(1).getChildren().get(0).getChildren().get(0).getText();
                 String status = orderObjStatus.get(2).getChildren().get(0).getText();
                 if (status.equals("等待卖家发货")){
+//                if (status.equals("等待见面交易")){
                     orderList.put(title, amount);
                     int res = autoFinish(title, "入账" + amount.substring(1) + "元");
-                    if (res == 200 || res == 404){//自动确认发货
+                    if (res == 200) {// || res == 404){//自动确认发货
                         orderObj.findObject(By.res(XIANYU_APPLICATION_PACKAGE, "trade_statue")).click();
                         getUiObject2ById("right_text").click();
                         //todo 点击确定
@@ -212,8 +216,8 @@ public class UiautomatorMainActivityTest {
      *
      * @return
      */
-    private int login() {
-        return UiautomatorTestApiClient.getInstance().login();
+    private int login(String username, String password) {
+        return UiautomatorTestApiClient.getInstance().login(username, password);
     }
     /**
      * 自动确认请求
@@ -224,7 +228,7 @@ public class UiautomatorMainActivityTest {
         int res = UiautomatorTestApiClient.getInstance().autoFinish(title, amount);
         if (res == 200)
             return res;
-        if (res == 403 && login() == 200)
+        if (res == 403 && login(account, password) == 200)
             return UiautomatorTestApiClient.getInstance().autoFinish(title, amount);
         return res;
     }

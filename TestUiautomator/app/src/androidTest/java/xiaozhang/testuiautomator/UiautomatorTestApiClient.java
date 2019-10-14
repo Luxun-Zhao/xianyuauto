@@ -35,24 +35,20 @@ public class UiautomatorTestApiClient {
 
     public static UiautomatorTestApiClient getInstance(){
         if (instance == null){
-            instance = new UiautomatorTestApiClient(null, null);
+            instance = new UiautomatorTestApiClient();
         }
         return instance;
     }
     private String username = "小蜜蜂";
     private String password = "20";
-    private String baseUrl = "https://holiday-uat.marbleio.tech";
+    private String baseUrl = "https://api.usdt.com.co";//"https://holiday-uat.marbleio.tech";
 
     private OkHttpClient okHttpClient = null;
     private UiautomatorTestApiModel apiModel = null;
     List<Cookie> staticCookies=new ArrayList<>();
     private String csrftoken = "";
 
-    private UiautomatorTestApiClient(String username, String password){
-        if (username != null)
-            this.username = username;
-        if (password != null)
-            this.password = password;
+    private UiautomatorTestApiClient(){
 
         okHttpClient = new OkHttpClient.Builder().cookieJar(new CookieJar() {
             @Override
@@ -105,13 +101,13 @@ public class UiautomatorTestApiClient {
         return headers;
     }
 
-    public int login(){
+    public int login(String username, String password){
         RequestBody request = new JSONBuilder().append("username", username).append("password", password).buildRequestBody();
 
         try {
             Call<ResponseBody> call = apiModel.login(request, csrftoken);
             Response<ResponseBody> response = call.execute();
-            Log.i("UiautomatorTestApiClient-login", response.code() + " " + response.body().string());
+//            Log.i("UiautomatorTestApiClient-login", response.code() + " " + response.body().string());
             return response.code();
         } catch (IOException e) {
             Log.e("UiautomatorTestApiClient-login", e.getMessage());
