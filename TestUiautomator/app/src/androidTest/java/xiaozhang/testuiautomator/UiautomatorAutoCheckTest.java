@@ -35,7 +35,7 @@ import static org.junit.Assert.assertThat;
  */
 @RunWith(AndroidJUnit4.class)
 @LargeTest
-public class UiautomatorMainActivityTest {
+public class UiautomatorAutoCheckTest {
     private UiDevice uiDevice;
     private static final int LAUNCH_TIMEOUT = 5000;//运行的时间
     private static final String XIANYU_APPLICATION_PACKAGE = "com.taobao.idlefish";
@@ -72,8 +72,8 @@ public class UiautomatorMainActivityTest {
     public void testAutoXianyuCheck() {
         Log.i("UiautomatorMainActivityTest","testAutoXianyuCheck");
         Bundle para= InstrumentationRegistry.getArguments();
-        account = "小蜜蜂";//para.getString("account");//此时paraString="value"
-        password = "20";//"Aa123456";//para.getString("password");//此时paraString="value"
+        account = para.getString("account");//此时paraString="value""小蜜蜂1";//
+        password = para.getString("password");//此时paraString="value""20";//"Aa123456";//
         if(login(account, password) != 200){
             uiDevice.pressHome();
             return;
@@ -82,41 +82,8 @@ public class UiautomatorMainActivityTest {
         int y = (int) (uiDevice.getDisplayHeight()*0.5875);
         while (true){
             checkNewOrder(x,y);
-//            testSleep(10000);
         }
     }
-    @Test
-    public void testChangeText_sameActivity() {
-//        //打开咸鱼
-//        startApp(XIANYU_APPLICATION_PACKAGE);
-//        //点开用户查询
-//        getUiObject2ById("search_bar_text").click();
-//        //选择搜索类型为用户
-//        getUiObject2ById("type_entry").click();
-//        getUiObject2ById("switch_user").click();
-//        //输入用户
-//        getUiObject2ById("search_term").setText("kadajzhao");
-//        //点击搜索
-//        getUiObject2ById("search_button").click();
-//        //点击进入店主首页
-//        getUiObject2ById("root").click();
-//        //查看店主宝贝列表
-//        getUiObject2ByText("宝贝").click();
-//        //点击金额
-//        getUiObject2ByText("100").click();
-//        //点击我想要
-//        getUiObject2ByText("我想要").click();
-//        getUiObject2ByText("立即购买").click();
-//        getUiObject2ByText("确定").click();
-//        untilUiObjectInit(XIANYU_APPLICATION_PACKAGE,"flybird_layout");
-
-        //打开淘宝
-//        startApp(TAOBAO_APPLICATION_PACKAGE);
-//        getUiObject2ByText("我的淘宝").click();
-//        getUiObject2ByText("我的淘宝").click();
-
-    }
-
     @Test //检测测试条件是不是为空
     public void checkPreconditions() {
         assertThat(uiDevice, notNullValue());
@@ -135,32 +102,38 @@ public class UiautomatorMainActivityTest {
      * @return
      */
     private void checkNewOrder(int x,int y){
-        //刷新咸菜菜单列表
-        uiDevice.swipe(500, 500, 500, 1000, 10);
-        //等待刷新完成
-        UiObject2 loading = uiDevice.findObject(By.res(XIANYU_APPLICATION_PACKAGE, "center_loading"));
-        while (loading != null){
-            loading = uiDevice.findObject(By.res(XIANYU_APPLICATION_PACKAGE, "center_loading"));
-            Log.i("loading", "");
-        }
-        testSleep(3000);
+        List<UiObject2> tempOrderListObj = getUiObject2ById("indicator_itmes").getChildren();
+        tempOrderListObj.get(3).click();
+        testSleep(1000);
+
+        List<UiObject2> orderListObj;
         //获取订单列表
-        List<UiObject2> orderListObj = getUiObject2ById("fnml_list").getChildren();
-        orderListObj.remove(0);
+        try {
+            orderListObj = getUiObject2ById("fnml_list").getChildren();
+        }catch (StaleObjectException e){
+            return;
+        }
+
         for (UiObject2 orderObj:orderListObj){
             try {
                 //获取基本信息控件
                 UiObject2 temp = orderObj.getChildren().get(0);
+                //判断是否是聊天项
+                if (temp.getChildren().size() < 4) continue;
 
                 //检查未读消息的标志
                 UiObject2 unread = temp.findObject(By.res(XIANYU_APPLICATION_PACKAGE, "msg_tag_debug_text_id"));
-//                if (unread == null) continue;
 
                 //检查商品状态
-                String status = temp.findObject(By.res(XIANYU_APPLICATION_PACKAGE, "vmmici_status")).getText();
+                UiObject2 statusObj = temp.findObject(By.res(XIANYU_APPLICATION_PACKAGE, "vmmici_status"));
+                String status = statusObj != null ? statusObj.getText() : "";
                 if (!status.equals("等待卖家发货")) {//清楚未读状态
-                    orderObj.click();
-                    getUiObject2ById("bar_left").click();
+                    if (unread != null){
+                        orderObj.click();
+                        testSleep(1000);
+                        getUiObject2ById("bar_left").click();
+                        testSleep(1000);
+                    }
                     continue;
                 }
                 //进入聊天记录详情
@@ -171,13 +144,17 @@ public class UiautomatorMainActivityTest {
                 String title = getUiObject2ById("price").getText();
                 String amount = getUiObject2ById("item_content").getText();
                 int res = autoFinish(title, "入账" + amount.substring(1) + "元");
-                if (res == 200 || res == 404){//自动确认发货) {//
+                if ( res == 200 ){//自动确认发货) {// || res == 404
                     getUiObject2ById("right_op").click();
                     getUiObject2ById("right_text").click();
                     //todo 点击确定
                     testSleep(3000);
                     uiDevice.click(x,y);
                     testSleep(3000);
+                    getUiObject2ById("bar_left").click();
+                    testSleep(1000);
+                    getUiObject2ById("bar_left").click();
+                }else {
                     getUiObject2ById("bar_left").click();
                     testSleep(1000);
                     getUiObject2ById("bar_left").click();

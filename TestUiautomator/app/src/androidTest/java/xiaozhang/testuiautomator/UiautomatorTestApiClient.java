@@ -39,9 +39,7 @@ public class UiautomatorTestApiClient {
         }
         return instance;
     }
-    private String username = "小蜜蜂";
-    private String password = "20";
-    private String baseUrl = "https://api.usdt.com.co";//"https://holiday-uat.marbleio.tech";
+    private String baseUrl = "https://api.usdt.com.co";//"https://holiday-uat.marbleio.tech";//
 
     private OkHttpClient okHttpClient = null;
     private UiautomatorTestApiModel apiModel = null;
